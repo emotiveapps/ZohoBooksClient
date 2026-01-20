@@ -4,7 +4,7 @@ import Foundation
 public actor ZohoBooksClient<OAuth: OAuthProviding> {
     private let organizationId: String
     private let oauth: OAuth
-    private let http: HTTPService
+    private let http: HttpService
     private let verbose: Bool
     private let baseURL: String
 
@@ -25,14 +25,14 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
         self.verbose = verbose
         self.baseURL = "https://www.zohoapis.\(region.rawValue)/books/v3"
 
-        // Create HTTPService with Zoho's rate limit
-        self.http = HTTPService(baseURL: self.baseURL, maxRequestsPerMinute: 100, verbose: verbose)
+        // Create HttpService with Zoho's rate limit
+        self.http = HttpService(baseURL: self.baseURL, maxRequestsPerMinute: 100, verbose: verbose)
     }
 
     /// Configure the HTTP service with OAuth auth.
     /// Must be called after init due to actor isolation.
     public func configure() async {
-        // Compose OAuth with HTTPService
+        // Compose OAuth with HttpService
         await http.setAuthorizationHeader { [oauth] in
             let token = await oauth.currentAccessToken
             return (name: "Authorization", value: "Zoho-oauthtoken \(token)")
@@ -54,14 +54,14 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
         URLQueryItem(name: "organization_id", value: organizationId)
     }
 
-    // MARK: - Private helpers wrapping HTTPService
+    // MARK: - Private helpers wrapping HttpService
 
     private func get<T: Decodable>(endpoint: String, queryItems: [URLQueryItem] = []) async throws -> T {
         var items = queryItems
         items.append(orgQueryItem)
         do {
             return try await http.get(endpoint: endpoint, queryItems: items)
-        } catch let error as HTTPServiceError {
+        } catch let error as HttpServiceError {
             throw error.toZohoError()
         }
     }
@@ -69,7 +69,7 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
     private func post<T: Decodable, R: Encodable>(endpoint: String, body: R) async throws -> T {
         do {
             return try await http.post(endpoint: endpoint, body: body, queryItems: [orgQueryItem])
-        } catch let error as HTTPServiceError {
+        } catch let error as HttpServiceError {
             throw error.toZohoError()
         }
     }
@@ -77,7 +77,7 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
     private func put<T: Decodable, R: Encodable>(endpoint: String, body: R) async throws -> T {
         do {
             return try await http.put(endpoint: endpoint, body: body, queryItems: [orgQueryItem])
-        } catch let error as HTTPServiceError {
+        } catch let error as HttpServiceError {
             throw error.toZohoError()
         }
     }
@@ -85,7 +85,7 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
     private func postRaw(endpoint: String) async throws {
         do {
             _ = try await http.request(endpoint: endpoint, method: "POST", queryItems: [orgQueryItem])
-        } catch let error as HTTPServiceError {
+        } catch let error as HttpServiceError {
             throw error.toZohoError()
         }
     }
@@ -224,110 +224,18 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
         return created
     }
 
-    /// Upload an attachment to an expense (multipart form-data, handled separately)
+    /// Upload an attachment to an expense
     public func uploadExpenseAttachment(expenseId: String, fileData: Data, filename: String) async throws {
-        // Multipart upload requires custom handling outside HTTPService
-        let token = await oauth.currentAccessToken
-        try await uploadMultipart(
-            endpoint: "/expenses/\(expenseId)/attachment",
-            fileData: fileData,
-            filename: filename,
-            fieldName: "attachment",
-            token: token
-        )
-    }
-
-    /// Multipart form-data upload (Zoho-specific)
-    private func uploadMultipart(
-        endpoint: String,
-        fileData: Data,
-        filename: String,
-        fieldName: String,
-        token: String,
-        retryOnAuth: Bool = true
-    ) async throws {
-        var components = URLComponents(string: "\(baseURL)\(endpoint)")!
-        components.queryItems = [orgQueryItem]
-
-        guard let url = components.url else {
-            throw ZohoError.invalidURL
-        }
-
-        let boundary = "Boundary-\(UUID().uuidString)"
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Zoho-oauthtoken \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-
-        var body = Data()
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"\(fieldName)\"; filename=\"\(filename)\"\r\n".data(using: .utf8)!)
-        body.append("Content-Type: \(mimeType(for: filename))\r\n\r\n".data(using: .utf8)!)
-        body.append(fileData)
-        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
-
-        request.httpBody = body
-
-        if verbose {
-            print("    POST \(url.absoluteString) (uploading \(filename), \(fileData.count) bytes)")
-        }
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw ZohoError.networkError(NSError(domain: "ZohoBooks", code: -1))
-        }
-
-        if httpResponse.statusCode == 401 && retryOnAuth {
-            try await oauth.refreshAccessToken()
-            let newToken = await oauth.currentAccessToken
-            return try await uploadMultipart(
-                endpoint: endpoint,
+        do {
+            try await http.uploadMultipart(
+                endpoint: "/expenses/\(expenseId)/attachment",
                 fileData: fileData,
                 filename: filename,
-                fieldName: fieldName,
-                token: newToken,
-                retryOnAuth: false
+                fieldName: "attachment",
+                queryItems: [orgQueryItem]
             )
-        }
-
-        if httpResponse.statusCode == 429 {
-            if verbose {
-                print("Rate limited, waiting 60 seconds...")
-            }
-            try await Task.sleep(nanoseconds: 60_000_000_000)
-            return try await uploadMultipart(
-                endpoint: endpoint,
-                fileData: fileData,
-                filename: filename,
-                fieldName: fieldName,
-                token: token,
-                retryOnAuth: retryOnAuth
-            )
-        }
-
-        guard (200...299).contains(httpResponse.statusCode) else {
-            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw ZohoError.httpError(statusCode: httpResponse.statusCode, message: errorMessage)
-        }
-    }
-
-    private func mimeType(for filename: String) -> String {
-        let lowercased = filename.lowercased()
-        if lowercased.hasSuffix(".jpg") || lowercased.hasSuffix(".jpeg") {
-            return "image/jpeg"
-        } else if lowercased.hasSuffix(".png") {
-            return "image/png"
-        } else if lowercased.hasSuffix(".gif") {
-            return "image/gif"
-        } else if lowercased.hasSuffix(".pdf") {
-            return "application/pdf"
-        } else if lowercased.hasSuffix(".webp") {
-            return "image/webp"
-        } else if lowercased.hasSuffix(".heic") {
-            return "image/heic"
-        } else {
-            return "application/octet-stream"
+        } catch let error as HttpServiceError {
+            throw error.toZohoError()
         }
     }
 
@@ -496,10 +404,10 @@ extension ZohoBooksClient where OAuth == ZohoOAuth {
 
 // MARK: - Error Conversion
 
-extension HTTPServiceError {
+extension HttpServiceError {
     func toZohoError() -> ZohoError {
         switch self {
-        case .invalidURL:
+        case .invalidUrl:
             return .invalidURL
         case .invalidResponse:
             return .invalidResponse

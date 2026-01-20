@@ -2,7 +2,7 @@ import Foundation
 
 /// A generic HTTP service with rate limiting and retry support.
 /// Auth is composable via closures, not tightly coupled.
-public actor HTTPService {
+public actor HttpService {
     private let baseURL: String
     private let verbose: Bool
 
@@ -92,7 +92,7 @@ public actor HTTPService {
         }
 
         guard let url = components.url else {
-            throw HTTPServiceError.invalidURL
+            throw HttpServiceError.invalidUrl
         }
 
         var request = URLRequest(url: url)
@@ -120,7 +120,7 @@ public actor HTTPService {
         let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
-            throw HTTPServiceError.invalidResponse
+            throw HttpServiceError.invalidResponse
         }
 
         // Handle 401 - call onUnauthorized and retry if provided
@@ -136,7 +136,7 @@ public actor HTTPService {
                     retryOnAuth: false
                 )
             }
-            throw HTTPServiceError.unauthorized
+            throw HttpServiceError.unauthorized
         }
 
         // Handle 429 - rate limited, wait and retry
@@ -157,7 +157,7 @@ public actor HTTPService {
 
         guard (200...299).contains(httpResponse.statusCode) else {
             let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw HTTPServiceError.httpError(statusCode: httpResponse.statusCode, message: errorMessage)
+            throw HttpServiceError.httpError(statusCode: httpResponse.statusCode, message: errorMessage)
         }
 
         return data
@@ -207,13 +207,127 @@ public actor HTTPService {
     ) async throws -> Data {
         return try await request(endpoint: endpoint, method: "DELETE", queryItems: queryItems, headers: headers)
     }
+
+    // MARK: - Multipart Upload
+
+    /// Upload a file using multipart/form-data
+    /// - Parameters:
+    ///   - endpoint: The API endpoint
+    ///   - fileData: The file data to upload
+    ///   - filename: The filename to use in the form
+    ///   - fieldName: The form field name for the file
+    ///   - queryItems: Additional query parameters
+    ///   - additionalFields: Additional form fields (non-file)
+    ///   - retryOnAuth: Whether to retry after refreshing auth on 401
+    /// - Returns: Response data
+    @discardableResult
+    public func uploadMultipart(
+        endpoint: String,
+        fileData: Data,
+        filename: String,
+        fieldName: String = "file",
+        queryItems: [URLQueryItem] = [],
+        additionalFields: [String: String] = [:],
+        retryOnAuth: Bool = true
+    ) async throws -> Data {
+        await checkRateLimit()
+
+        var components = URLComponents(string: "\(baseURL)\(endpoint)")!
+        if !queryItems.isEmpty {
+            components.queryItems = queryItems
+        }
+
+        guard let url = components.url else {
+            throw HttpServiceError.invalidUrl
+        }
+
+        let boundary = "Boundary-\(UUID().uuidString)"
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        // Apply authorization header if provided
+        if let authHeader = await authorizationHeader?() {
+            request.setValue(authHeader.value, forHTTPHeaderField: authHeader.name)
+        }
+
+        // Build multipart body
+        var body = Data()
+
+        // Add additional form fields
+        for (name, value) in additionalFields {
+            body.append("--\(boundary)\r\n".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".data(using: .utf8)!)
+            body.append("\(value)\r\n".data(using: .utf8)!)
+        }
+
+        // Add file data
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"\(fieldName)\"; filename=\"\(filename)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(MimeType.mimeTypeString(for: filename))\r\n\r\n".data(using: .utf8)!)
+        body.append(fileData)
+        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+
+        request.httpBody = body
+
+        if verbose {
+            print("  POST \(url.absoluteString) (uploading \(filename), \(fileData.count) bytes)")
+        }
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw HttpServiceError.invalidResponse
+        }
+
+        // Handle 401 - call onUnauthorized and retry if provided
+        if httpResponse.statusCode == 401 && retryOnAuth {
+            if let refreshAuth = onUnauthorized {
+                try await refreshAuth()
+                return try await self.uploadMultipart(
+                    endpoint: endpoint,
+                    fileData: fileData,
+                    filename: filename,
+                    fieldName: fieldName,
+                    queryItems: queryItems,
+                    additionalFields: additionalFields,
+                    retryOnAuth: false
+                )
+            }
+            throw HttpServiceError.unauthorized
+        }
+
+        // Handle 429 - rate limited, wait and retry
+        if httpResponse.statusCode == 429 {
+            if verbose {
+                print("Rate limited, waiting 60 seconds...")
+            }
+            try await Task.sleep(nanoseconds: 60_000_000_000)
+            return try await self.uploadMultipart(
+                endpoint: endpoint,
+                fileData: fileData,
+                filename: filename,
+                fieldName: fieldName,
+                queryItems: queryItems,
+                additionalFields: additionalFields,
+                retryOnAuth: retryOnAuth
+            )
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw HttpServiceError.httpError(statusCode: httpResponse.statusCode, message: errorMessage)
+        }
+
+        return data
+    }
 }
 
 // MARK: - Errors
 
-/// Errors from HTTPService (generic, not API-specific)
-public enum HTTPServiceError: Error, LocalizedError, Sendable {
-    case invalidURL
+/// Errors from HttpService (generic, not API-specific)
+public enum HttpServiceError: Error, LocalizedError, Sendable {
+    case invalidUrl
     case invalidResponse
     case unauthorized
     case rateLimited
@@ -221,7 +335,7 @@ public enum HTTPServiceError: Error, LocalizedError, Sendable {
 
     public var errorDescription: String? {
         switch self {
-        case .invalidURL:
+        case .invalidUrl:
             return "Invalid URL"
         case .invalidResponse:
             return "Invalid response"
