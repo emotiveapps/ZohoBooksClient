@@ -1,4 +1,5 @@
 import Foundation
+import MimeTypeEnum
 
 /// A generic HTTP service with rate limiting and retry support.
 /// Auth is composable via closures, not tightly coupled.

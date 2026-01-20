@@ -17,12 +17,13 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/ChimeHQ/OAuthenticator", from: "0.3.0")
+        .package(url: "https://github.com/ChimeHQ/OAuthenticator", from: "0.3.0"),
+        .package(url: "https://github.com/emotiveapps/MimeTypeEnum", from: "1.0.0")
     ],
     targets: [
         .target(
             name: "ZohoBooksClient",
-            dependencies: ["OAuthenticator"]
+            dependencies: ["OAuthenticator", "MimeTypeEnum"]
         ),
         .testTarget(
             name: "ZohoBooksClientTests",
