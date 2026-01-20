@@ -50,8 +50,8 @@ public struct ZohoConfig: Sendable {
 /// Zoho data center regions
 public enum ZohoRegion: String, Sendable, Codable {
   case com
-  case eu
-  case `in`
-  case au
-  case jp
+  case europe = "eu"
+  case india = "in"
+  case australia = "au"
+  case japan = "jp"
 }

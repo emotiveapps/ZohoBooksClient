@@ -126,7 +126,8 @@ public actor ZohoOAuthenticator: InteractiveOAuthProviding {
     @MainActor
     public func authorize() async throws {
       // Trigger authentication flow - OAuthenticator will present web view
-      let dummyRequest = URLRequest(url: URL(string: "https://www.zohoapis.\(config.region.rawValue)/books/v3/contacts")!)
+      let urlString = "https://www.zohoapis.\(config.region.rawValue)/books/v3/contacts"
+      let dummyRequest = URLRequest(url: URL(string: urlString)!)
       _ = try await authenticator.response(for: dummyRequest)
     }
   #endif
@@ -134,8 +135,9 @@ public actor ZohoOAuthenticator: InteractiveOAuthProviding {
   @discardableResult
   public func refreshAccessToken() async throws -> String {
     // Make a request to trigger token refresh
-    let dummyRequest = URLRequest(url: URL(string: "https://www.zohoapis.\(config.region.rawValue)/books/v3/contacts")!)
-    let _ = try await authenticator.response(for: dummyRequest)
+    let urlString = "https://www.zohoapis.\(config.region.rawValue)/books/v3/contacts"
+    let dummyRequest = URLRequest(url: URL(string: urlString)!)
+    _ = try await authenticator.response(for: dummyRequest)
 
     // Extract token from authenticator's internal state
     // Since OAuthenticator manages tokens internally, we rely on it

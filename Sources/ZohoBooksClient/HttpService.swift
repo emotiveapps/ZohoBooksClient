@@ -83,7 +83,9 @@ public actor HttpService {
   ) async throws -> Data {
     await checkRateLimit()
 
-    var components = URLComponents(string: "\(baseURL)\(endpoint)")!
+    guard var components = URLComponents(string: "\(baseURL)\(endpoint)") else {
+      throw HttpServiceError.invalidUrl
+    }
 
     // Merge query items
     var allQueryItems = components.queryItems ?? []
@@ -184,7 +186,9 @@ public actor HttpService {
     headers: [String: String] = [:]
   ) async throws -> T {
     let bodyData = try JSONEncoder().encode(body)
-    let data = try await request(endpoint: endpoint, method: "POST", queryItems: queryItems, body: bodyData, headers: headers)
+    let data = try await request(
+      endpoint: endpoint, method: "POST",
+      queryItems: queryItems, body: bodyData, headers: headers)
     return try JSONDecoder().decode(T.self, from: data)
   }
 
@@ -196,7 +200,9 @@ public actor HttpService {
     headers: [String: String] = [:]
   ) async throws -> T {
     let bodyData = try JSONEncoder().encode(body)
-    let data = try await request(endpoint: endpoint, method: "PUT", queryItems: queryItems, body: bodyData, headers: headers)
+    let data = try await request(
+      endpoint: endpoint, method: "PUT",
+      queryItems: queryItems, body: bodyData, headers: headers)
     return try JSONDecoder().decode(T.self, from: data)
   }
 
@@ -233,7 +239,9 @@ public actor HttpService {
   ) async throws -> Data {
     await checkRateLimit()
 
-    var components = URLComponents(string: "\(baseURL)\(endpoint)")!
+    guard var components = URLComponents(string: "\(baseURL)\(endpoint)") else {
+      throw HttpServiceError.invalidUrl
+    }
     if !queryItems.isEmpty {
       components.queryItems = queryItems
     }
@@ -257,17 +265,19 @@ public actor HttpService {
 
     // Add additional form fields
     for (name, value) in additionalFields {
-      body.append("--\(boundary)\r\n".data(using: .utf8)!)
-      body.append("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".data(using: .utf8)!)
-      body.append("\(value)\r\n".data(using: .utf8)!)
+      body.append(Data("--\(boundary)\r\n".utf8))
+      body.append(Data("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".utf8))
+      body.append(Data("\(value)\r\n".utf8))
     }
 
     // Add file data
-    body.append("--\(boundary)\r\n".data(using: .utf8)!)
-    body.append("Content-Disposition: form-data; name=\"\(fieldName)\"; filename=\"\(filename)\"\r\n".data(using: .utf8)!)
-    body.append("Content-Type: \(MimeType.mimeTypeString(for: filename))\r\n\r\n".data(using: .utf8)!)
+    body.append(Data("--\(boundary)\r\n".utf8))
+    let contentDisposition = "Content-Disposition: form-data; "
+      + "name=\"\(fieldName)\"; filename=\"\(filename)\"\r\n"
+    body.append(Data(contentDisposition.utf8))
+    body.append(Data("Content-Type: \(MimeType.mimeTypeString(for: filename))\r\n\r\n".utf8))
     body.append(fileData)
-    body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+    body.append(Data("\r\n--\(boundary)--\r\n".utf8))
 
     request.httpBody = body
 

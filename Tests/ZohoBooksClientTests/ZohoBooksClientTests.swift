@@ -25,7 +25,7 @@ final class ZohoBooksClientTests: XCTestCase {
       accessToken: "token",
       refreshToken: "refresh",
       organizationId: "org",
-      region: .eu
+      region: .europe
     )
     XCTAssertEqual(euConfig.baseURL, "https://www.zohoapis.eu/books/v3")
 
@@ -35,7 +35,7 @@ final class ZohoBooksClientTests: XCTestCase {
       accessToken: "token",
       refreshToken: "refresh",
       organizationId: "org",
-      region: .in
+      region: .india
     )
     XCTAssertEqual(inConfig.baseURL, "https://www.zohoapis.in/books/v3")
   }

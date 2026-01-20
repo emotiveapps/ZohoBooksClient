@@ -6,10 +6,10 @@ final class ZohoOAuthConfigTests: XCTestCase {
 
   func testZohoRegionRawValues() {
     XCTAssertEqual(ZohoRegion.com.rawValue, "com")
-    XCTAssertEqual(ZohoRegion.eu.rawValue, "eu")
-    XCTAssertEqual(ZohoRegion.in.rawValue, "in")
-    XCTAssertEqual(ZohoRegion.au.rawValue, "au")
-    XCTAssertEqual(ZohoRegion.jp.rawValue, "jp")
+    XCTAssertEqual(ZohoRegion.europe.rawValue, "eu")
+    XCTAssertEqual(ZohoRegion.india.rawValue, "in")
+    XCTAssertEqual(ZohoRegion.australia.rawValue, "au")
+    XCTAssertEqual(ZohoRegion.japan.rawValue, "jp")
   }
 
   // MARK: - ZohoOAuthConfig Tests
@@ -49,59 +49,82 @@ final class ZohoOAuthConfigTests: XCTestCase {
   func testZohoOAuthConfigAuthorizationURL() {
     let redirectURI = URL(string: "myapp://oauth/callback")!
 
-    let comConfig = ZohoOAuthConfig(clientId: "id", clientSecret: "secret", redirectURI: redirectURI, region: .com)
+    let comConfig = ZohoOAuthConfig(
+      clientId: "id", clientSecret: "secret", redirectURI: redirectURI, region: .com)
     XCTAssertEqual(comConfig.authorizationURL.absoluteString, "https://accounts.zoho.com/oauth/v2/auth")
 
-    let euConfig = ZohoOAuthConfig(clientId: "id", clientSecret: "secret", redirectURI: redirectURI, region: .eu)
+    let euConfig = ZohoOAuthConfig(
+      clientId: "id", clientSecret: "secret", redirectURI: redirectURI, region: .europe)
     XCTAssertEqual(euConfig.authorizationURL.absoluteString, "https://accounts.zoho.eu/oauth/v2/auth")
 
-    let inConfig = ZohoOAuthConfig(clientId: "id", clientSecret: "secret", redirectURI: redirectURI, region: .in)
+    let inConfig = ZohoOAuthConfig(
+      clientId: "id", clientSecret: "secret", redirectURI: redirectURI, region: .india)
     XCTAssertEqual(inConfig.authorizationURL.absoluteString, "https://accounts.zoho.in/oauth/v2/auth")
 
-    let auConfig = ZohoOAuthConfig(clientId: "id", clientSecret: "secret", redirectURI: redirectURI, region: .au)
+    let auConfig = ZohoOAuthConfig(
+      clientId: "id", clientSecret: "secret", redirectURI: redirectURI, region: .australia)
     XCTAssertEqual(auConfig.authorizationURL.absoluteString, "https://accounts.zoho.au/oauth/v2/auth")
 
-    let jpConfig = ZohoOAuthConfig(clientId: "id", clientSecret: "secret", redirectURI: redirectURI, region: .jp)
+    let jpConfig = ZohoOAuthConfig(
+      clientId: "id", clientSecret: "secret", redirectURI: redirectURI, region: .japan)
     XCTAssertEqual(jpConfig.authorizationURL.absoluteString, "https://accounts.zoho.jp/oauth/v2/auth")
   }
 
   func testZohoOAuthConfigTokenURL() {
     let redirectURI = URL(string: "myapp://oauth/callback")!
 
-    let comConfig = ZohoOAuthConfig(clientId: "id", clientSecret: "secret", redirectURI: redirectURI, region: .com)
+    let comConfig = ZohoOAuthConfig(
+      clientId: "id", clientSecret: "secret", redirectURI: redirectURI, region: .com)
     XCTAssertEqual(comConfig.tokenURL.absoluteString, "https://accounts.zoho.com/oauth/v2/token")
 
-    let euConfig = ZohoOAuthConfig(clientId: "id", clientSecret: "secret", redirectURI: redirectURI, region: .eu)
+    let euConfig = ZohoOAuthConfig(
+      clientId: "id", clientSecret: "secret", redirectURI: redirectURI, region: .europe)
     XCTAssertEqual(euConfig.tokenURL.absoluteString, "https://accounts.zoho.eu/oauth/v2/token")
   }
 
   // MARK: - ZohoConfig URL Tests
 
   func testZohoConfigBaseURLAllRegions() {
-    let comConfig = ZohoConfig(clientId: "id", clientSecret: "secret", accessToken: "token", refreshToken: "refresh", organizationId: "org", region: .com)
+    let comConfig = ZohoConfig(
+      clientId: "id", clientSecret: "secret", accessToken: "token",
+      refreshToken: "refresh", organizationId: "org", region: .com)
     XCTAssertEqual(comConfig.baseURL, "https://www.zohoapis.com/books/v3")
 
-    let euConfig = ZohoConfig(clientId: "id", clientSecret: "secret", accessToken: "token", refreshToken: "refresh", organizationId: "org", region: .eu)
+    let euConfig = ZohoConfig(
+      clientId: "id", clientSecret: "secret", accessToken: "token",
+      refreshToken: "refresh", organizationId: "org", region: .europe)
     XCTAssertEqual(euConfig.baseURL, "https://www.zohoapis.eu/books/v3")
 
-    let inConfig = ZohoConfig(clientId: "id", clientSecret: "secret", accessToken: "token", refreshToken: "refresh", organizationId: "org", region: .in)
+    let inConfig = ZohoConfig(
+      clientId: "id", clientSecret: "secret", accessToken: "token",
+      refreshToken: "refresh", organizationId: "org", region: .india)
     XCTAssertEqual(inConfig.baseURL, "https://www.zohoapis.in/books/v3")
 
-    let auConfig = ZohoConfig(clientId: "id", clientSecret: "secret", accessToken: "token", refreshToken: "refresh", organizationId: "org", region: .au)
+    let auConfig = ZohoConfig(
+      clientId: "id", clientSecret: "secret", accessToken: "token",
+      refreshToken: "refresh", organizationId: "org", region: .australia)
     XCTAssertEqual(auConfig.baseURL, "https://www.zohoapis.au/books/v3")
 
-    let jpConfig = ZohoConfig(clientId: "id", clientSecret: "secret", accessToken: "token", refreshToken: "refresh", organizationId: "org", region: .jp)
+    let jpConfig = ZohoConfig(
+      clientId: "id", clientSecret: "secret", accessToken: "token",
+      refreshToken: "refresh", organizationId: "org", region: .japan)
     XCTAssertEqual(jpConfig.baseURL, "https://www.zohoapis.jp/books/v3")
   }
 
   func testZohoConfigOAuthURLAllRegions() {
-    let comConfig = ZohoConfig(clientId: "id", clientSecret: "secret", accessToken: "token", refreshToken: "refresh", organizationId: "org", region: .com)
+    let comConfig = ZohoConfig(
+      clientId: "id", clientSecret: "secret", accessToken: "token",
+      refreshToken: "refresh", organizationId: "org", region: .com)
     XCTAssertEqual(comConfig.oauthURL, "https://accounts.zoho.com/oauth/v2/token")
 
-    let euConfig = ZohoConfig(clientId: "id", clientSecret: "secret", accessToken: "token", refreshToken: "refresh", organizationId: "org", region: .eu)
+    let euConfig = ZohoConfig(
+      clientId: "id", clientSecret: "secret", accessToken: "token",
+      refreshToken: "refresh", organizationId: "org", region: .europe)
     XCTAssertEqual(euConfig.oauthURL, "https://accounts.zoho.eu/oauth/v2/token")
 
-    let auConfig = ZohoConfig(clientId: "id", clientSecret: "secret", accessToken: "token", refreshToken: "refresh", organizationId: "org", region: .au)
+    let auConfig = ZohoConfig(
+      clientId: "id", clientSecret: "secret", accessToken: "token",
+      refreshToken: "refresh", organizationId: "org", region: .australia)
     XCTAssertEqual(auConfig.oauthURL, "https://accounts.zoho.au/oauth/v2/token")
   }
 }

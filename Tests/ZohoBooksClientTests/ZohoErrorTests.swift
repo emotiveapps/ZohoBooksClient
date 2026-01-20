@@ -35,13 +35,17 @@ final class ZohoErrorTests: XCTestCase {
   }
 
   func testZohoErrorDecodingError() {
-    let underlyingError = NSError(domain: "TestDomain", code: 1, userInfo: [NSLocalizedDescriptionKey: "Decoding failed"])
+    let underlyingError = NSError(
+      domain: "TestDomain", code: 1,
+      userInfo: [NSLocalizedDescriptionKey: "Decoding failed"])
     let error = ZohoError.decodingError(underlyingError)
     XCTAssertTrue(error.errorDescription?.contains("Failed to decode response") ?? false)
   }
 
   func testZohoErrorNetworkError() {
-    let underlyingError = NSError(domain: "NSURLErrorDomain", code: -1009, userInfo: [NSLocalizedDescriptionKey: "No internet connection"])
+    let underlyingError = NSError(
+      domain: "NSURLErrorDomain", code: -1009,
+      userInfo: [NSLocalizedDescriptionKey: "No internet connection"])
     let error = ZohoError.networkError(underlyingError)
     XCTAssertTrue(error.errorDescription?.contains("Network error") ?? false)
   }
