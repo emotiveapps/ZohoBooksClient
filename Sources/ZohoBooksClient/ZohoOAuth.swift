@@ -1,24 +1,9 @@
 import Foundation
 
-/// Response from OAuth token refresh
-struct TokenRefreshResponse: Codable, Sendable {
-    let accessToken: String
-    let tokenType: String?
-    let expiresIn: Int?
-    let refreshToken: String?
-    let scope: String?
-
-    enum CodingKeys: String, CodingKey {
-        case accessToken = "access_token"
-        case tokenType = "token_type"
-        case expiresIn = "expires_in"
-        case refreshToken = "refresh_token"
-        case scope
-    }
-}
-
-/// Manages OAuth token refresh for Zoho Books API
-public actor ZohoOAuth {
+/// Simple OAuth token manager for manual token handling.
+/// Use this when you already have access and refresh tokens.
+/// For interactive web-based login, use ZohoOAuthenticator instead.
+public actor ZohoOAuth: OAuthProviding {
     private var accessToken: String
     private var refreshToken: String
     private let clientId: String
@@ -38,12 +23,32 @@ public actor ZohoOAuth {
         refreshToken
     }
 
+    /// Whether the user is authenticated (has a non-empty access token)
+    public var isAuthenticated: Bool {
+        !accessToken.isEmpty
+    }
+
     public init(config: ZohoConfig) {
         self.accessToken = config.accessToken
         self.refreshToken = config.refreshToken
         self.clientId = config.clientId
         self.clientSecret = config.clientSecret
         self.oauthURL = config.oauthURL
+    }
+
+    /// Initialize with explicit tokens (for testing or manual setup)
+    public init(
+        accessToken: String,
+        refreshToken: String,
+        clientId: String,
+        clientSecret: String,
+        region: ZohoRegion = .com
+    ) {
+        self.accessToken = accessToken
+        self.refreshToken = refreshToken
+        self.clientId = clientId
+        self.clientSecret = clientSecret
+        self.oauthURL = "https://accounts.zoho.\(region.rawValue)/oauth/v2/token"
     }
 
     /// Refresh the OAuth access token using the refresh token
@@ -96,5 +101,24 @@ public actor ZohoOAuth {
     public func updateTokens(accessToken: String, refreshToken: String) {
         self.accessToken = accessToken
         self.refreshToken = refreshToken
+    }
+}
+
+// MARK: - Token Response (internal)
+
+/// Response from OAuth token refresh
+struct TokenRefreshResponse: Codable, Sendable {
+    let accessToken: String
+    let tokenType: String?
+    let expiresIn: Int?
+    let refreshToken: String?
+    let scope: String?
+
+    enum CodingKeys: String, CodingKey {
+        case accessToken = "access_token"
+        case tokenType = "token_type"
+        case expiresIn = "expires_in"
+        case refreshToken = "refresh_token"
+        case scope
     }
 }

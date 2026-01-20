@@ -16,9 +16,13 @@ let package = Package(
             targets: ["ZohoBooksClient"]
         ),
     ],
+    dependencies: [
+        .package(url: "https://github.com/ChimeHQ/OAuthenticator", from: "0.3.0")
+    ],
     targets: [
         .target(
-            name: "ZohoBooksClient"
+            name: "ZohoBooksClient",
+            dependencies: ["OAuthenticator"]
         ),
         .testTarget(
             name: "ZohoBooksClientTests",
