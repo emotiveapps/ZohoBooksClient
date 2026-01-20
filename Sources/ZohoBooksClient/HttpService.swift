@@ -188,7 +188,8 @@ public actor HttpService {
     let bodyData = try JSONEncoder().encode(body)
     let data = try await request(
       endpoint: endpoint, method: "POST",
-      queryItems: queryItems, body: bodyData, headers: headers)
+      queryItems: queryItems, body: bodyData, headers: headers
+    )
     return try JSONDecoder().decode(T.self, from: data)
   }
 
@@ -202,7 +203,8 @@ public actor HttpService {
     let bodyData = try JSONEncoder().encode(body)
     let data = try await request(
       endpoint: endpoint, method: "PUT",
-      queryItems: queryItems, body: bodyData, headers: headers)
+      queryItems: queryItems, body: bodyData, headers: headers
+    )
     return try JSONDecoder().decode(T.self, from: data)
   }
 

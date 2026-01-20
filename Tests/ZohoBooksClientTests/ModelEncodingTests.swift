@@ -32,7 +32,7 @@ final class ModelEncodingTests: XCTestCase {
   }
 
   func testZBItemDecoding() throws {
-    let json = """
+    let json = Data("""
     {
         "item_id": "item-789",
         "name": "Decoded Item",
@@ -102,7 +102,7 @@ final class ModelEncodingTests: XCTestCase {
   }
 
   func testZBTaxDecoding() throws {
-    let json = """
+    let json = Data("""
     {
         "tax_id": "tax-456",
         "tax_name": "VAT",
@@ -136,7 +136,7 @@ final class ModelEncodingTests: XCTestCase {
   }
 
   func testZBTaxExemptionDecoding() throws {
-    let json = """
+    let json = Data("""
     {
         "tax_exemption_id": "exempt-001",
         "tax_exemption_code": "EXEMPT-SERVICE",
