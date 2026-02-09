@@ -209,23 +209,25 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
     return allExpenses
   }
 
-  /// Fetch expenses filtered by vendor and paid-through account
+  /// Fetch expenses filtered by vendor and optionally by paid-through account
   /// - Parameters:
   ///   - vendorId: Filter by vendor ID
-  ///   - paidThroughAccountId: Filter by the bank/credit card account that paid
+  ///   - paidThroughAccountId: Optional filter by the bank/credit card account that paid
   /// - Returns: Array of matching expenses
-  public func fetchExpenses(vendorId: String, paidThroughAccountId: String) async throws -> [ZBExpense] {
+  public func fetchExpenses(vendorId: String, paidThroughAccountId: String? = nil) async throws -> [ZBExpense] {
     var allExpenses: [ZBExpense] = []
     var page = 1
     let perPage = 200
 
     while true {
-      let queryItems = [
+      var queryItems = [
         URLQueryItem(name: "vendor_id", value: vendorId),
-        URLQueryItem(name: "paid_through_account_id", value: paidThroughAccountId),
         URLQueryItem(name: "page", value: "\(page)"),
         URLQueryItem(name: "per_page", value: "\(perPage)")
       ]
+      if let paidThroughAccountId {
+        queryItems.append(URLQueryItem(name: "paid_through_account_id", value: paidThroughAccountId))
+      }
       let response: ZBExpenseListResponse = try await get(endpoint: "/expenses", queryItems: queryItems)
 
       if let expenses = response.expenses {
