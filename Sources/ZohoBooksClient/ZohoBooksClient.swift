@@ -209,6 +209,39 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
     return allExpenses
   }
 
+  /// Fetch expenses filtered by vendor and paid-through account
+  /// - Parameters:
+  ///   - vendorId: Filter by vendor ID
+  ///   - paidThroughAccountId: Filter by the bank/credit card account that paid
+  /// - Returns: Array of matching expenses
+  public func fetchExpenses(vendorId: String, paidThroughAccountId: String) async throws -> [ZBExpense] {
+    var allExpenses: [ZBExpense] = []
+    var page = 1
+    let perPage = 200
+
+    while true {
+      let queryItems = [
+        URLQueryItem(name: "vendor_id", value: vendorId),
+        URLQueryItem(name: "paid_through_account_id", value: paidThroughAccountId),
+        URLQueryItem(name: "page", value: "\(page)"),
+        URLQueryItem(name: "per_page", value: "\(perPage)")
+      ]
+      let response: ZBExpenseListResponse = try await get(endpoint: "/expenses", queryItems: queryItems)
+
+      if let expenses = response.expenses {
+        allExpenses.append(contentsOf: expenses)
+      }
+
+      if let pageContext = response.pageContext, pageContext.hasMorePage == true {
+        page += 1
+      } else {
+        break
+      }
+    }
+
+    return allExpenses
+  }
+
   /// Create a new expense
   public func createExpense(_ expense: ZBExpenseCreateRequest) async throws -> ZBExpense {
     let response: ZBExpenseResponse = try await post(endpoint: "/expenses", body: expense)
@@ -377,6 +410,132 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
       ($0.taxExemptionCode ?? "").lowercased().contains("service") ||
         ($0.description ?? "").lowercased().contains("service")
     }
+  }
+
+  // MARK: - Bank Accounts
+
+  /// Fetch all bank accounts
+  public func fetchBankAccounts() async throws -> [ZBBankAccount] {
+    let response: ZBBankAccountListResponse = try await get(endpoint: "/bankaccounts")
+
+    if response.code != 0 {
+      throw ZohoError.apiError(code: response.code, message: response.message)
+    }
+
+    return response.bankaccounts ?? []
+  }
+
+  // MARK: - Bank Transactions
+
+  /// Fetch uncategorized bank transactions
+  /// - Parameters:
+  ///   - accountId: Bank account ID
+  ///   - year: Optional year to filter transactions
+  /// - Returns: Array of uncategorized transactions
+  public func fetchUncategorizedTransactions(accountId: String, year: Int? = nil) async throws -> [ZBBankTransaction] {
+    var allTransactions: [ZBBankTransaction] = []
+    var page = 1
+    let perPage = 200
+
+    while true {
+      var queryItems = [
+        URLQueryItem(name: "account_id", value: accountId),
+        URLQueryItem(name: "status", value: "uncategorized"),
+        URLQueryItem(name: "page", value: "\(page)"),
+        URLQueryItem(name: "per_page", value: "\(perPage)")
+      ]
+
+      if let year = year {
+        queryItems.append(URLQueryItem(name: "date_start", value: "\(year)-01-01"))
+        queryItems.append(URLQueryItem(name: "date_end", value: "\(year)-12-31"))
+      }
+
+      let response: ZBBankTransactionListResponse = try await get(
+        endpoint: "/banktransactions",
+        queryItems: queryItems
+      )
+
+      if response.code != 0 {
+        throw ZohoError.apiError(code: response.code, message: response.message)
+      }
+
+      if let transactions = response.banktransactions {
+        allTransactions.append(contentsOf: transactions)
+      }
+
+      if let pageContext = response.pageContext, pageContext.hasMorePage == true {
+        page += 1
+      } else {
+        break
+      }
+    }
+
+    return allTransactions
+  }
+
+  /// Categorize a bank transaction as an expense
+  public func categorizeAsExpense(transactionId: String, request: ZBCategorizeExpenseRequest) async throws {
+    let response: ZBCategorizeResponse = try await post(
+      endpoint: "/banktransactions/uncategorized/\(transactionId)/categorize/expenses",
+      body: request
+    )
+
+    if response.code != 0 {
+      throw ZohoError.apiError(code: response.code, message: response.message)
+    }
+  }
+
+  /// Categorize a bank transaction as a transfer between accounts
+  public func categorizeAsTransfer(transactionId: String, request: ZBCategorizeTransferRequest) async throws {
+    let response: ZBCategorizeResponse = try await post(
+      endpoint: "/banktransactions/uncategorized/\(transactionId)/categorize",
+      body: request
+    )
+
+    if response.code != 0 {
+      throw ZohoError.apiError(code: response.code, message: response.message)
+    }
+  }
+
+  /// Categorize a bank transaction as an owner contribution
+  public func categorizeAsOwnerContribution(transactionId: String, request: ZBCategorizeOwnerContributionRequest) async throws {
+    let response: ZBCategorizeResponse = try await post(
+      endpoint: "/banktransactions/uncategorized/\(transactionId)/categorize",
+      body: request
+    )
+
+    if response.code != 0 {
+      throw ZohoError.apiError(code: response.code, message: response.message)
+    }
+  }
+
+  /// Categorize a bank transaction as a sale (income without invoice)
+  public func categorizeAsSale(transactionId: String, request: ZBCategorizeSaleRequest) async throws {
+    let response: ZBCategorizeResponse = try await post(
+      endpoint: "/banktransactions/uncategorized/\(transactionId)/categorize",
+      body: request
+    )
+
+    if response.code != 0 {
+      throw ZohoError.apiError(code: response.code, message: response.message)
+    }
+  }
+
+  // MARK: - Vendor Helpers
+
+  /// Get or create a vendor by name
+  /// - Parameter name: Vendor name
+  /// - Returns: Existing or newly created vendor
+  public func getOrCreateVendor(name: String) async throws -> ZBContact {
+    if let existing = try await searchContactByName(name, contactType: "vendor") {
+      return existing
+    }
+
+    let request = ZBContactCreateRequest(
+      contactName: name,
+      contactType: "vendor"
+    )
+    return try await createContact(request)
   }
 }
 
