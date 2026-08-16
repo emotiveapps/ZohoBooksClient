@@ -55,21 +55,24 @@ public actor ZohoOAuth: OAuthProviding {
   /// - Returns: The new access token
   @discardableResult
   public func refreshAccessToken() async throws -> String {
-    var components = URLComponents(string: oauthURL)!
-    components.queryItems = [
+    guard let url = URL(string: oauthURL) else {
+      throw ZohoError.invalidURL
+    }
+
+    // Credentials go in the form-encoded POST body, never the URL query —
+    // URLs get logged by proxies and middleware.
+    var bodyComponents = URLComponents()
+    bodyComponents.queryItems = [
       URLQueryItem(name: "refresh_token", value: refreshToken),
       URLQueryItem(name: "client_id", value: clientId),
       URLQueryItem(name: "client_secret", value: clientSecret),
       URLQueryItem(name: "grant_type", value: "refresh_token")
     ]
 
-    guard let url = components.url else {
-      throw ZohoError.invalidURL
-    }
-
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
     request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+    request.httpBody = Data((bodyComponents.percentEncodedQuery ?? "").utf8)
 
     let (data, response) = try await URLSession.shared.data(for: request)
 

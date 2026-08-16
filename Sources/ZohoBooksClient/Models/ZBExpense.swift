@@ -51,6 +51,9 @@ public struct ZBExpense: Codable, Sendable {
   public var referenceNumber: String?
   public var description: String?
   public var status: String?
+  /// Attached documents (receipts). Populated by the expense *detail* endpoint;
+  /// list responses omit it (nil ≠ "no documents").
+  public var documents: [ZBDocument]?
 
   enum CodingKeys: String, CodingKey {
     case expenseId = "expense_id"
@@ -78,6 +81,7 @@ public struct ZBExpense: Codable, Sendable {
     case referenceNumber = "reference_number"
     case description
     case status
+    case documents
   }
 
   public init(
@@ -132,6 +136,36 @@ public struct ZBExpense: Codable, Sendable {
     self.referenceNumber = referenceNumber
     self.description = description
     self.status = status
+    self.documents = nil
+  }
+}
+
+// MARK: - Document
+
+/// A document attached to an expense (e.g. a receipt)
+public struct ZBDocument: Codable, Sendable {
+  public var documentId: String?
+  public var fileName: String?
+  public var fileType: String?
+  public var fileSizeFormatted: String?
+
+  enum CodingKeys: String, CodingKey {
+    case documentId = "document_id"
+    case fileName = "file_name"
+    case fileType = "file_type"
+    case fileSizeFormatted = "file_size_formatted"
+  }
+
+  public init(
+    documentId: String? = nil,
+    fileName: String? = nil,
+    fileType: String? = nil,
+    fileSizeFormatted: String? = nil
+  ) {
+    self.documentId = documentId
+    self.fileName = fileName
+    self.fileType = fileType
+    self.fileSizeFormatted = fileSizeFormatted
   }
 }
 

@@ -12,6 +12,14 @@ struct ZBItemListResponse: Codable, Sendable {
   let code: Int
   let message: String
   let items: [ZBItem]?
+  let pageContext: ZBPageContext?
+
+  enum CodingKeys: String, CodingKey {
+    case code
+    case message
+    case items
+    case pageContext = "page_context"
+  }
 }
 
 // MARK: - Item

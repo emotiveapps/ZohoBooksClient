@@ -12,17 +12,27 @@ struct ZBTaxListResponse: Codable, Sendable {
   let code: Int
   let message: String
   let taxes: [ZBTax]?
+  let pageContext: ZBPageContext?
+
+  enum CodingKeys: String, CodingKey {
+    case code
+    case message
+    case taxes
+    case pageContext = "page_context"
+  }
 }
 
 struct ZBTaxExemptionListResponse: Codable, Sendable {
   let code: Int
   let message: String
   let taxExemptions: [ZBTaxExemption]?
+  let pageContext: ZBPageContext?
 
   enum CodingKeys: String, CodingKey {
     case code
     case message
     case taxExemptions = "tax_exemptions"
+    case pageContext = "page_context"
   }
 }
 

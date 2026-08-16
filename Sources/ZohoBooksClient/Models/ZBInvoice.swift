@@ -12,6 +12,14 @@ struct ZBInvoiceListResponse: Codable, Sendable {
   let code: Int
   let message: String
   let invoices: [ZBInvoice]?
+  let pageContext: ZBPageContext?
+
+  enum CodingKeys: String, CodingKey {
+    case code
+    case message
+    case invoices
+    case pageContext = "page_context"
+  }
 }
 
 // MARK: - Invoice

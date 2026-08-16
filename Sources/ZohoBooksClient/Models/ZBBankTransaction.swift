@@ -80,6 +80,18 @@ public struct ZBBankAccount: Codable, Sendable {
     }
 }
 
+// MARK: - Transaction Status Filter
+
+/// `filter_by` values for the bank transactions list endpoint
+public enum ZBTransactionStatusFilter: String, Sendable {
+    case all = "Status.All"
+    case uncategorized = "Status.Uncategorized"
+    case categorized = "Status.Categorized"
+    case manuallyAdded = "Status.ManuallyAdded"
+    case excluded = "Status.Excluded"
+    case matched = "Status.Matched"
+}
+
 // MARK: - Bank Transaction
 
 /// A bank transaction in Zoho Books

@@ -12,6 +12,14 @@ struct ZBPaymentListResponse: Codable, Sendable {
   let code: Int
   let message: String
   let customerpayments: [ZBPayment]?
+  let pageContext: ZBPageContext?
+
+  enum CodingKeys: String, CodingKey {
+    case code
+    case message
+    case customerpayments
+    case pageContext = "page_context"
+  }
 }
 
 // MARK: - Payment

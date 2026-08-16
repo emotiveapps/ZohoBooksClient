@@ -90,29 +90,32 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
     }
   }
 
-  // MARK: - Contacts
+  // MARK: - Pagination
 
-  /// Fetch all contacts with optional filtering by type
-  /// - Parameter contactType: Filter by "customer" or "vendor"
-  /// - Returns: Array of contacts
-  public func fetchContacts(contactType: String? = nil) async throws -> [ZBContact] {
-    var allContacts: [ZBContact] = []
+  /// Fetch every page of a paginated list endpoint. All list fetches go through
+  /// this so no endpoint silently truncates at one page.
+  private func fetchAllPages<R: ZBPagedResponse>(
+    _ type: R.Type,
+    endpoint: String,
+    queryItems: [URLQueryItem] = [],
+    perPage: Int = 200
+  ) async throws -> [R.Item] {
+    var all: [R.Item] = []
     var page = 1
-    let perPage = 200
 
     while true {
-      var queryItems = [
-        URLQueryItem(name: "page", value: "\(page)"),
-        URLQueryItem(name: "per_page", value: "\(perPage)")
-      ]
-      if let type = contactType {
-        queryItems.append(URLQueryItem(name: "contact_type", value: type))
+      var items = queryItems
+      items.append(URLQueryItem(name: "page", value: "\(page)"))
+      items.append(URLQueryItem(name: "per_page", value: "\(perPage)"))
+
+      let response: R = try await get(endpoint: endpoint, queryItems: items)
+
+      if response.code != 0 {
+        throw ZohoError.apiError(code: response.code, message: response.message)
       }
 
-      let response: ZBContactListResponse = try await get(endpoint: "/contacts", queryItems: queryItems)
-
-      if let contacts = response.contacts {
-        allContacts.append(contentsOf: contacts)
+      if let pageItems = response.pageItems {
+        all.append(contentsOf: pageItems)
       }
 
       if let pageContext = response.pageContext, pageContext.hasMorePage == true {
@@ -122,7 +125,20 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
       }
     }
 
-    return allContacts
+    return all
+  }
+
+  // MARK: - Contacts
+
+  /// Fetch all contacts with optional filtering by type
+  /// - Parameter contactType: Filter by "customer" or "vendor"
+  /// - Returns: Array of contacts
+  public func fetchContacts(contactType: String? = nil) async throws -> [ZBContact] {
+    var queryItems: [URLQueryItem] = []
+    if let type = contactType {
+      queryItems.append(URLQueryItem(name: "contact_type", value: type))
+    }
+    return try await fetchAllPages(ZBContactListResponse.self, endpoint: "/contacts", queryItems: queryItems)
   }
 
   /// Create a new contact
@@ -140,18 +156,25 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
     return created
   }
 
-  /// Search for a contact by exact name match
+  /// Search for a contact by exact name match.
+  /// Filters server-side (`contact_name_contains`) so this doesn't download
+  /// the entire contact list per lookup.
   public func searchContactByName(_ name: String, contactType: String? = nil) async throws -> ZBContact? {
-    let contacts = try await fetchContacts(contactType: contactType)
-    return contacts.first { ($0.contactName ?? "").lowercased() == name.lowercased() }
+    var queryItems = [URLQueryItem(name: "contact_name_contains", value: name)]
+    if let type = contactType {
+      queryItems.append(URLQueryItem(name: "contact_type", value: type))
+    }
+    let candidates: [ZBContact] = try await fetchAllPages(
+      ZBContactListResponse.self, endpoint: "/contacts", queryItems: queryItems
+    )
+    return candidates.first { ($0.contactName ?? "").lowercased() == name.lowercased() }
   }
 
   // MARK: - Invoices
 
   /// Fetch all invoices
   public func fetchInvoices() async throws -> [ZBInvoice] {
-    let response: ZBInvoiceListResponse = try await get(endpoint: "/invoices")
-    return response.invoices ?? []
+    try await fetchAllPages(ZBInvoiceListResponse.self, endpoint: "/invoices")
   }
 
   /// Create a new invoice
@@ -184,29 +207,32 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
 
   /// Fetch all expenses with pagination
   public func fetchExpenses() async throws -> [ZBExpense] {
-    var allExpenses: [ZBExpense] = []
-    var page = 1
-    let perPage = 200
+    try await fetchAllPages(ZBExpenseListResponse.self, endpoint: "/expenses")
+  }
 
-    while true {
-      let queryItems = [
-        URLQueryItem(name: "page", value: "\(page)"),
-        URLQueryItem(name: "per_page", value: "\(perPage)")
-      ]
-      let response: ZBExpenseListResponse = try await get(endpoint: "/expenses", queryItems: queryItems)
+  /// Fetch all expenses within a date range (inclusive, yyyy-MM-dd)
+  public func fetchExpenses(dateStart: String, dateEnd: String) async throws -> [ZBExpense] {
+    let queryItems = [
+      URLQueryItem(name: "date_start", value: dateStart),
+      URLQueryItem(name: "date_end", value: dateEnd)
+    ]
+    return try await fetchAllPages(ZBExpenseListResponse.self, endpoint: "/expenses", queryItems: queryItems)
+  }
 
-      if let expenses = response.expenses {
-        allExpenses.append(contentsOf: expenses)
-      }
+  /// Fetch a single expense with full detail, including attached documents
+  /// (the list endpoint omits `documents`).
+  public func fetchExpense(expenseId: String) async throws -> ZBExpense {
+    let response: ZBExpenseResponse = try await get(endpoint: "/expenses/\(expenseId)")
 
-      if let pageContext = response.pageContext, pageContext.hasMorePage == true {
-        page += 1
-      } else {
-        break
-      }
+    if response.code != 0 {
+      throw ZohoError.apiError(code: response.code, message: response.message)
     }
 
-    return allExpenses
+    guard let expense = response.expense else {
+      throw ZohoError.invalidResponse
+    }
+
+    return expense
   }
 
   /// Fetch expenses filtered by vendor and optionally by paid-through account
@@ -215,33 +241,11 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
   ///   - paidThroughAccountId: Optional filter by the bank/credit card account that paid
   /// - Returns: Array of matching expenses
   public func fetchExpenses(vendorId: String, paidThroughAccountId: String? = nil) async throws -> [ZBExpense] {
-    var allExpenses: [ZBExpense] = []
-    var page = 1
-    let perPage = 200
-
-    while true {
-      var queryItems = [
-        URLQueryItem(name: "vendor_id", value: vendorId),
-        URLQueryItem(name: "page", value: "\(page)"),
-        URLQueryItem(name: "per_page", value: "\(perPage)")
-      ]
-      if let paidThroughAccountId {
-        queryItems.append(URLQueryItem(name: "paid_through_account_id", value: paidThroughAccountId))
-      }
-      let response: ZBExpenseListResponse = try await get(endpoint: "/expenses", queryItems: queryItems)
-
-      if let expenses = response.expenses {
-        allExpenses.append(contentsOf: expenses)
-      }
-
-      if let pageContext = response.pageContext, pageContext.hasMorePage == true {
-        page += 1
-      } else {
-        break
-      }
+    var queryItems = [URLQueryItem(name: "vendor_id", value: vendorId)]
+    if let paidThroughAccountId {
+      queryItems.append(URLQueryItem(name: "paid_through_account_id", value: paidThroughAccountId))
     }
-
-    return allExpenses
+    return try await fetchAllPages(ZBExpenseListResponse.self, endpoint: "/expenses", queryItems: queryItems)
   }
 
   /// Create a new expense
@@ -278,8 +282,7 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
 
   /// Fetch all customer payments
   public func fetchPayments() async throws -> [ZBPayment] {
-    let response: ZBPaymentListResponse = try await get(endpoint: "/customerpayments")
-    return response.customerpayments ?? []
+    try await fetchAllPages(ZBPaymentListResponse.self, endpoint: "/customerpayments")
   }
 
   /// Create a new customer payment
@@ -301,8 +304,7 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
 
   /// Fetch all accounts in the chart of accounts
   public func fetchAccounts() async throws -> [ZBAccount] {
-    let response: ZBAccountListResponse = try await get(endpoint: "/chartofaccounts")
-    return response.chartOfAccounts ?? []
+    try await fetchAllPages(ZBAccountListResponse.self, endpoint: "/chartofaccounts")
   }
 
   /// Create a new account
@@ -345,8 +347,7 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
 
   /// Fetch all items
   public func fetchItems() async throws -> [ZBItem] {
-    let response: ZBItemListResponse = try await get(endpoint: "/items")
-    return response.items ?? []
+    try await fetchAllPages(ZBItemListResponse.self, endpoint: "/items")
   }
 
   /// Create a new item
@@ -374,8 +375,7 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
 
   /// Fetch all taxes
   public func fetchTaxes() async throws -> [ZBTax] {
-    let response: ZBTaxListResponse = try await get(endpoint: "/settings/taxes")
-    return response.taxes ?? []
+    try await fetchAllPages(ZBTaxListResponse.self, endpoint: "/settings/taxes")
   }
 
   /// Create a new tax
@@ -395,8 +395,7 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
 
   /// Fetch all tax exemptions
   public func fetchTaxExemptions() async throws -> [ZBTaxExemption] {
-    let response: ZBTaxExemptionListResponse = try await get(endpoint: "/settings/taxexemptions")
-    return response.taxExemptions ?? []
+    try await fetchAllPages(ZBTaxExemptionListResponse.self, endpoint: "/settings/taxexemptions")
   }
 
   /// Search for a tax by name
@@ -435,44 +434,45 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
   ///   - year: Optional year to filter transactions
   /// - Returns: Array of uncategorized transactions
   public func fetchUncategorizedTransactions(accountId: String, year: Int? = nil) async throws -> [ZBBankTransaction] {
-    var allTransactions: [ZBBankTransaction] = []
-    var page = 1
-    let perPage = 200
+    var queryItems = [
+      URLQueryItem(name: "account_id", value: accountId),
+      URLQueryItem(name: "status", value: "uncategorized")
+    ]
 
-    while true {
-      var queryItems = [
-        URLQueryItem(name: "account_id", value: accountId),
-        URLQueryItem(name: "status", value: "uncategorized"),
-        URLQueryItem(name: "page", value: "\(page)"),
-        URLQueryItem(name: "per_page", value: "\(perPage)")
-      ]
-
-      if let year = year {
-        queryItems.append(URLQueryItem(name: "date_start", value: "\(year)-01-01"))
-        queryItems.append(URLQueryItem(name: "date_end", value: "\(year)-12-31"))
-      }
-
-      let response: ZBBankTransactionListResponse = try await get(
-        endpoint: "/banktransactions",
-        queryItems: queryItems
-      )
-
-      if response.code != 0 {
-        throw ZohoError.apiError(code: response.code, message: response.message)
-      }
-
-      if let transactions = response.banktransactions {
-        allTransactions.append(contentsOf: transactions)
-      }
-
-      if let pageContext = response.pageContext, pageContext.hasMorePage == true {
-        page += 1
-      } else {
-        break
-      }
+    if let year = year {
+      queryItems.append(URLQueryItem(name: "date_start", value: "\(year)-01-01"))
+      queryItems.append(URLQueryItem(name: "date_end", value: "\(year)-12-31"))
     }
 
-    return allTransactions
+    return try await fetchAllPages(
+      ZBBankTransactionListResponse.self, endpoint: "/banktransactions", queryItems: queryItems
+    )
+  }
+
+  /// Fetch bank transactions of any status, optionally bounded by date
+  /// (yyyy-MM-dd, inclusive). This is the feed used for completeness/gap
+  /// analysis, where categorized activity matters as much as uncategorized.
+  public func fetchTransactions(
+    accountId: String,
+    dateStart: String? = nil,
+    dateEnd: String? = nil,
+    status: ZBTransactionStatusFilter = .all
+  ) async throws -> [ZBBankTransaction] {
+    var queryItems = [
+      URLQueryItem(name: "account_id", value: accountId),
+      URLQueryItem(name: "filter_by", value: status.rawValue)
+    ]
+
+    if let dateStart {
+      queryItems.append(URLQueryItem(name: "date_start", value: dateStart))
+    }
+    if let dateEnd {
+      queryItems.append(URLQueryItem(name: "date_end", value: dateEnd))
+    }
+
+    return try await fetchAllPages(
+      ZBBankTransactionListResponse.self, endpoint: "/banktransactions", queryItems: queryItems
+    )
   }
 
   /// Categorize a bank transaction as an expense

@@ -18,11 +18,13 @@ struct ZBAccountListResponse: Codable, Sendable {
   let code: Int
   let message: String
   let chartOfAccounts: [ZBAccount]?
+  let pageContext: ZBPageContext?
 
   enum CodingKeys: String, CodingKey {
     case code
     case message
     case chartOfAccounts = "chartofaccounts"
+    case pageContext = "page_context"
   }
 }
 
