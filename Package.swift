@@ -1,4 +1,4 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 6.0
 
 import PackageDescription
 
@@ -23,11 +23,14 @@ let package = Package(
   targets: [
     .target(
       name: "ZohoBooksClient",
-      dependencies: ["OAuthenticator", "MimeTypeEnum"]
+      dependencies: ["OAuthenticator", "MimeTypeEnum"],
+      // Not yet audited for Swift 6 strict concurrency; keep v5 semantics.
+      swiftSettings: [.swiftLanguageMode(.v5)]
     ),
     .testTarget(
       name: "ZohoBooksClientTests",
-      dependencies: ["ZohoBooksClient"]
+      dependencies: ["ZohoBooksClient"],
+      swiftSettings: [.swiftLanguageMode(.v5)]
     )
   ]
 )

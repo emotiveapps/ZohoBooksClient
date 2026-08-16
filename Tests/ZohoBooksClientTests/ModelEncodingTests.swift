@@ -1,13 +1,14 @@
-import XCTest
+import Foundation
+import Testing
 @testable import ZohoBooksClient
 
-final class ModelEncodingTests: XCTestCase {
+@Suite struct ModelEncodingTests {
   let encoder = JSONEncoder()
   let decoder = JSONDecoder()
 
   // MARK: - ZBItem Tests
 
-  func testZBItemEncoding() throws {
+  @Test func zBItemEncoding() throws {
     let item = ZBItem(
       itemId: "item-123",
       name: "Test Item",
@@ -21,17 +22,17 @@ final class ModelEncodingTests: XCTestCase {
     )
 
     let data = try encoder.encode(item)
-    let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
 
-    XCTAssertEqual(json["item_id"] as? String, "item-123")
-    XCTAssertEqual(json["name"] as? String, "Test Item")
-    XCTAssertEqual(json["rate"] as? Double, 99.99)
-    XCTAssertEqual(json["sku"] as? String, "SKU-001")
-    XCTAssertEqual(json["tax_id"] as? String, "tax-456")
-    XCTAssertEqual(json["product_type"] as? String, "goods")
+    #expect(json["item_id"] as? String == "item-123")
+    #expect(json["name"] as? String == "Test Item")
+    #expect(json["rate"] as? Double == 99.99)
+    #expect(json["sku"] as? String == "SKU-001")
+    #expect(json["tax_id"] as? String == "tax-456")
+    #expect(json["product_type"] as? String == "goods")
   }
 
-  func testZBItemDecoding() throws {
+  @Test func zBItemDecoding() throws {
     let json = Data("""
     {
         "item_id": "item-789",
@@ -45,15 +46,15 @@ final class ModelEncodingTests: XCTestCase {
 
     let item = try decoder.decode(ZBItem.self, from: json)
 
-    XCTAssertEqual(item.itemId, "item-789")
-    XCTAssertEqual(item.name, "Decoded Item")
-    XCTAssertEqual(item.rate, 150.0)
-    XCTAssertEqual(item.taxPercentage, 10.5)
-    XCTAssertEqual(item.isReturnable, true)
-    XCTAssertEqual(item.status, "active")
+    #expect(item.itemId == "item-789")
+    #expect(item.name == "Decoded Item")
+    #expect(item.rate == 150.0)
+    #expect(item.taxPercentage == 10.5)
+    #expect(item.isReturnable == true)
+    #expect(item.status == "active")
   }
 
-  func testZBItemCreateRequestEncoding() throws {
+  @Test func zBItemCreateRequestEncoding() throws {
     let request = ZBItemCreateRequest(
       name: "New Item",
       description: "Item description",
@@ -65,22 +66,22 @@ final class ModelEncodingTests: XCTestCase {
     )
 
     let data = try encoder.encode(request)
-    let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
 
-    XCTAssertEqual(json["name"] as? String, "New Item")
-    XCTAssertEqual(json["rate"] as? Double, 50.0)
-    XCTAssertEqual(json["tax_id"] as? String, "tax-001")
-    XCTAssertEqual(json["product_type"] as? String, "service")
+    #expect(json["name"] as? String == "New Item")
+    #expect(json["rate"] as? Double == 50.0)
+    #expect(json["tax_id"] as? String == "tax-001")
+    #expect(json["product_type"] as? String == "service")
   }
 
-  func testZBProductTypeRawValues() {
-    XCTAssertEqual(ZBProductType.goods.rawValue, "goods")
-    XCTAssertEqual(ZBProductType.service.rawValue, "service")
+  @Test func zBProductTypeRawValues() {
+    #expect(ZBProductType.goods.rawValue == "goods")
+    #expect(ZBProductType.service.rawValue == "service")
   }
 
   // MARK: - ZBTax Tests
 
-  func testZBTaxEncoding() throws {
+  @Test func zBTaxEncoding() throws {
     let tax = ZBTax(
       taxId: "tax-123",
       taxName: "GST",
@@ -92,16 +93,16 @@ final class ModelEncodingTests: XCTestCase {
     )
 
     let data = try encoder.encode(tax)
-    let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
 
-    XCTAssertEqual(json["tax_id"] as? String, "tax-123")
-    XCTAssertEqual(json["tax_name"] as? String, "GST")
-    XCTAssertEqual(json["tax_percentage"] as? Double, 18.0)
-    XCTAssertEqual(json["is_value_added"] as? Bool, true)
-    XCTAssertEqual(json["is_default_tax"] as? Bool, false)
+    #expect(json["tax_id"] as? String == "tax-123")
+    #expect(json["tax_name"] as? String == "GST")
+    #expect(json["tax_percentage"] as? Double == 18.0)
+    #expect(json["is_value_added"] as? Bool == true)
+    #expect(json["is_default_tax"] as? Bool == false)
   }
 
-  func testZBTaxDecoding() throws {
+  @Test func zBTaxDecoding() throws {
     let json = Data("""
     {
         "tax_id": "tax-456",
@@ -114,13 +115,13 @@ final class ModelEncodingTests: XCTestCase {
 
     let tax = try decoder.decode(ZBTax.self, from: json)
 
-    XCTAssertEqual(tax.taxId, "tax-456")
-    XCTAssertEqual(tax.taxName, "VAT")
-    XCTAssertEqual(tax.taxPercentage, 20.0)
-    XCTAssertEqual(tax.isEditable, true)
+    #expect(tax.taxId == "tax-456")
+    #expect(tax.taxName == "VAT")
+    #expect(tax.taxPercentage == 20.0)
+    #expect(tax.isEditable == true)
   }
 
-  func testZBTaxCreateRequestEncoding() throws {
+  @Test func zBTaxCreateRequestEncoding() throws {
     let request = ZBTaxCreateRequest(
       taxName: "Sales Tax",
       taxPercentage: 8.25,
@@ -128,14 +129,14 @@ final class ModelEncodingTests: XCTestCase {
     )
 
     let data = try encoder.encode(request)
-    let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
 
-    XCTAssertEqual(json["tax_name"] as? String, "Sales Tax")
-    XCTAssertEqual(json["tax_percentage"] as? Double, 8.25)
-    XCTAssertEqual(json["tax_type"] as? String, "tax")
+    #expect(json["tax_name"] as? String == "Sales Tax")
+    #expect(json["tax_percentage"] as? Double == 8.25)
+    #expect(json["tax_type"] as? String == "tax")
   }
 
-  func testZBTaxExemptionDecoding() throws {
+  @Test func zBTaxExemptionDecoding() throws {
     let json = Data("""
     {
         "tax_exemption_id": "exempt-001",
@@ -147,20 +148,20 @@ final class ModelEncodingTests: XCTestCase {
 
     let exemption = try decoder.decode(ZBTaxExemption.self, from: json)
 
-    XCTAssertEqual(exemption.taxExemptionId, "exempt-001")
-    XCTAssertEqual(exemption.taxExemptionCode, "EXEMPT-SERVICE")
-    XCTAssertEqual(exemption.description, "Service tax exemption")
-    XCTAssertEqual(exemption.type, "customer")
+    #expect(exemption.taxExemptionId == "exempt-001")
+    #expect(exemption.taxExemptionCode == "EXEMPT-SERVICE")
+    #expect(exemption.description == "Service tax exemption")
+    #expect(exemption.type == "customer")
   }
 
   // MARK: - ZBContact Tests
 
-  func testZBContactTypeRawValues() {
-    XCTAssertEqual(ZBContactType.customer.rawValue, "customer")
-    XCTAssertEqual(ZBContactType.vendor.rawValue, "vendor")
+  @Test func zBContactTypeRawValues() {
+    #expect(ZBContactType.customer.rawValue == "customer")
+    #expect(ZBContactType.vendor.rawValue == "vendor")
   }
 
-  func testZBContactCreateRequestEncoding() throws {
+  @Test func zBContactCreateRequestEncoding() throws {
     let request = ZBContactCreateRequest(
       contactName: "Acme Corp",
       companyName: "Acme Corporation",
@@ -176,22 +177,22 @@ final class ModelEncodingTests: XCTestCase {
     )
 
     let data = try encoder.encode(request)
-    let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
 
-    XCTAssertEqual(json["contact_name"] as? String, "Acme Corp")
-    XCTAssertEqual(json["company_name"] as? String, "Acme Corporation")
-    XCTAssertEqual(json["contact_type"] as? String, "customer")
-    XCTAssertEqual(json["currency_code"] as? String, "USD")
+    #expect(json["contact_name"] as? String == "Acme Corp")
+    #expect(json["company_name"] as? String == "Acme Corporation")
+    #expect(json["contact_type"] as? String == "customer")
+    #expect(json["currency_code"] as? String == "USD")
 
     if let billingAddress = json["billing_address"] as? [String: Any] {
-      XCTAssertEqual(billingAddress["city"] as? String, "New York")
-      XCTAssertEqual(billingAddress["state"] as? String, "NY")
+      #expect(billingAddress["city"] as? String == "New York")
+      #expect(billingAddress["state"] as? String == "NY")
     } else {
-      XCTFail("billing_address should be present")
+      Issue.record("billing_address should be present")
     }
   }
 
-  func testZBAddressEncoding() throws {
+  @Test func zBAddressEncoding() throws {
     let address = ZBAddress(
       address: "456 Oak Ave",
       city: "Los Angeles",
@@ -201,17 +202,17 @@ final class ModelEncodingTests: XCTestCase {
     )
 
     let data = try encoder.encode(address)
-    let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
 
-    XCTAssertEqual(json["address"] as? String, "456 Oak Ave")
-    XCTAssertEqual(json["city"] as? String, "Los Angeles")
-    XCTAssertEqual(json["state"] as? String, "CA")
-    XCTAssertEqual(json["zip"] as? String, "90001")
+    #expect(json["address"] as? String == "456 Oak Ave")
+    #expect(json["city"] as? String == "Los Angeles")
+    #expect(json["state"] as? String == "CA")
+    #expect(json["zip"] as? String == "90001")
   }
 
   // MARK: - ZBInvoice Tests
 
-  func testZBInvoiceCreateRequestEncoding() throws {
+  @Test func zBInvoiceCreateRequestEncoding() throws {
     let lineItem = ZBInvoiceLineItemRequest(
       name: "Consulting",
       description: "Development services",
@@ -228,23 +229,23 @@ final class ModelEncodingTests: XCTestCase {
     )
 
     let data = try encoder.encode(request)
-    let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
 
-    XCTAssertEqual(json["customer_id"] as? String, "cust-123")
-    XCTAssertEqual(json["invoice_number"] as? String, "INV-001")
-    XCTAssertEqual(json["date"] as? String, "2024-01-15")
-    XCTAssertEqual(json["due_date"] as? String, "2024-02-15")
+    #expect(json["customer_id"] as? String == "cust-123")
+    #expect(json["invoice_number"] as? String == "INV-001")
+    #expect(json["date"] as? String == "2024-01-15")
+    #expect(json["due_date"] as? String == "2024-02-15")
 
     if let lineItems = json["line_items"] as? [[String: Any]] {
-      XCTAssertEqual(lineItems.count, 1)
-      XCTAssertEqual(lineItems[0]["name"] as? String, "Consulting")
-      XCTAssertEqual(lineItems[0]["rate"] as? Double, 150.0)
+      #expect(lineItems.count == 1)
+      #expect(lineItems[0]["name"] as? String == "Consulting")
+      #expect(lineItems[0]["rate"] as? Double == 150.0)
     } else {
-      XCTFail("line_items should be present")
+      Issue.record("line_items should be present")
     }
   }
 
-  func testZBInvoiceLineItemRequestEncoding() throws {
+  @Test func zBInvoiceLineItemRequestEncoding() throws {
     let lineItem = ZBInvoiceLineItemRequest(
       name: "Service",
       description: "Professional services",
@@ -254,11 +255,11 @@ final class ModelEncodingTests: XCTestCase {
     )
 
     let data = try encoder.encode(lineItem)
-    let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
 
-    XCTAssertEqual(json["name"] as? String, "Service")
-    XCTAssertEqual(json["rate"] as? Double, 200.0)
-    XCTAssertEqual(json["quantity"] as? Double, 5.0)
-    XCTAssertEqual(json["tax_id"] as? String, "tax-001")
+    #expect(json["name"] as? String == "Service")
+    #expect(json["rate"] as? Double == 200.0)
+    #expect(json["quantity"] as? Double == 5.0)
+    #expect(json["tax_id"] as? String == "tax-001")
   }
 }

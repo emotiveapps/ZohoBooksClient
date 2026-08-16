@@ -1,139 +1,140 @@
-import XCTest
+import Foundation
+import Testing
 @testable import ZohoBooksClient
 
-final class ZohoErrorTests: XCTestCase {
+@Suite struct ZohoErrorTests {
   // MARK: - ZohoError Tests
 
-  func testZohoErrorInvalidURL() {
+  @Test func zohoErrorInvalidURL() {
     let error = ZohoError.invalidURL
-    XCTAssertEqual(error.errorDescription, "Invalid Zoho Books API URL")
+    #expect(error.errorDescription == "Invalid Zoho Books API URL")
   }
 
-  func testZohoErrorInvalidResponse() {
+  @Test func zohoErrorInvalidResponse() {
     let error = ZohoError.invalidResponse
-    XCTAssertEqual(error.errorDescription, "Invalid API response")
+    #expect(error.errorDescription == "Invalid API response")
   }
 
-  func testZohoErrorUnauthorized() {
+  @Test func zohoErrorUnauthorized() {
     let error = ZohoError.unauthorized
-    XCTAssertEqual(error.errorDescription, "Unauthorized - access token may be expired")
+    #expect(error.errorDescription == "Unauthorized - access token may be expired")
   }
 
-  func testZohoErrorRateLimited() {
+  @Test func zohoErrorRateLimited() {
     let error = ZohoError.rateLimited
-    XCTAssertEqual(error.errorDescription, "Rate limit exceeded - too many requests")
+    #expect(error.errorDescription == "Rate limit exceeded - too many requests")
   }
 
-  func testZohoErrorHttpError() {
+  @Test func zohoErrorHttpError() {
     let error = ZohoError.httpError(statusCode: 404, message: "Not Found")
-    XCTAssertEqual(error.errorDescription, "HTTP error (404): Not Found")
+    #expect(error.errorDescription == "HTTP error (404): Not Found")
   }
 
-  func testZohoErrorApiError() {
+  @Test func zohoErrorApiError() {
     let error = ZohoError.apiError(code: 1001, message: "Invalid parameter")
-    XCTAssertEqual(error.errorDescription, "Zoho API error (1001): Invalid parameter")
+    #expect(error.errorDescription == "Zoho API error (1001): Invalid parameter")
   }
 
-  func testZohoErrorDecodingError() {
+  @Test func zohoErrorDecodingError() {
     let underlyingError = NSError(
       domain: "TestDomain", code: 1,
       userInfo: [NSLocalizedDescriptionKey: "Decoding failed"]
     )
     let error = ZohoError.decodingError(underlyingError)
-    XCTAssertTrue(error.errorDescription?.contains("Failed to decode response") ?? false)
+    #expect(error.errorDescription?.contains("Failed to decode response") ?? false)
   }
 
-  func testZohoErrorNetworkError() {
+  @Test func zohoErrorNetworkError() {
     let underlyingError = NSError(
       domain: "NSURLErrorDomain", code: -1009,
       userInfo: [NSLocalizedDescriptionKey: "No internet connection"]
     )
     let error = ZohoError.networkError(underlyingError)
-    XCTAssertTrue(error.errorDescription?.contains("Network error") ?? false)
+    #expect(error.errorDescription?.contains("Network error") ?? false)
   }
 
-  func testZohoErrorTokenRefreshFailed() {
+  @Test func zohoErrorTokenRefreshFailed() {
     let error = ZohoError.tokenRefreshFailed("Invalid refresh token")
-    XCTAssertEqual(error.errorDescription, "Token refresh failed: Invalid refresh token")
+    #expect(error.errorDescription == "Token refresh failed: Invalid refresh token")
   }
 
   // MARK: - HttpServiceError Tests
 
-  func testHttpServiceErrorInvalidUrl() {
+  @Test func httpServiceErrorInvalidUrl() {
     let error = HttpServiceError.invalidUrl
-    XCTAssertEqual(error.errorDescription, "Invalid URL")
+    #expect(error.errorDescription == "Invalid URL")
   }
 
-  func testHttpServiceErrorInvalidResponse() {
+  @Test func httpServiceErrorInvalidResponse() {
     let error = HttpServiceError.invalidResponse
-    XCTAssertEqual(error.errorDescription, "Invalid response")
+    #expect(error.errorDescription == "Invalid response")
   }
 
-  func testHttpServiceErrorUnauthorized() {
+  @Test func httpServiceErrorUnauthorized() {
     let error = HttpServiceError.unauthorized
-    XCTAssertEqual(error.errorDescription, "Unauthorized")
+    #expect(error.errorDescription == "Unauthorized")
   }
 
-  func testHttpServiceErrorRateLimited() {
+  @Test func httpServiceErrorRateLimited() {
     let error = HttpServiceError.rateLimited
-    XCTAssertEqual(error.errorDescription, "Rate limit exceeded")
+    #expect(error.errorDescription == "Rate limit exceeded")
   }
 
-  func testHttpServiceErrorHttpError() {
+  @Test func httpServiceErrorHttpError() {
     let error = HttpServiceError.httpError(statusCode: 500, message: "Internal Server Error")
-    XCTAssertEqual(error.errorDescription, "HTTP error (500): Internal Server Error")
+    #expect(error.errorDescription == "HTTP error (500): Internal Server Error")
   }
 
   // MARK: - HttpServiceError to ZohoError Conversion
 
-  func testHttpServiceErrorToZohoErrorInvalidUrl() {
+  @Test func httpServiceErrorToZohoErrorInvalidUrl() {
     let httpError = HttpServiceError.invalidUrl
     let zohoError = httpError.toZohoError()
     if case .invalidURL = zohoError {
       // Success
     } else {
-      XCTFail("Expected .invalidURL")
+      Issue.record("Expected .invalidURL")
     }
   }
 
-  func testHttpServiceErrorToZohoErrorInvalidResponse() {
+  @Test func httpServiceErrorToZohoErrorInvalidResponse() {
     let httpError = HttpServiceError.invalidResponse
     let zohoError = httpError.toZohoError()
     if case .invalidResponse = zohoError {
       // Success
     } else {
-      XCTFail("Expected .invalidResponse")
+      Issue.record("Expected .invalidResponse")
     }
   }
 
-  func testHttpServiceErrorToZohoErrorUnauthorized() {
+  @Test func httpServiceErrorToZohoErrorUnauthorized() {
     let httpError = HttpServiceError.unauthorized
     let zohoError = httpError.toZohoError()
     if case .unauthorized = zohoError {
       // Success
     } else {
-      XCTFail("Expected .unauthorized")
+      Issue.record("Expected .unauthorized")
     }
   }
 
-  func testHttpServiceErrorToZohoErrorRateLimited() {
+  @Test func httpServiceErrorToZohoErrorRateLimited() {
     let httpError = HttpServiceError.rateLimited
     let zohoError = httpError.toZohoError()
     if case .rateLimited = zohoError {
       // Success
     } else {
-      XCTFail("Expected .rateLimited")
+      Issue.record("Expected .rateLimited")
     }
   }
 
-  func testHttpServiceErrorToZohoErrorHttpError() {
+  @Test func httpServiceErrorToZohoErrorHttpError() {
     let httpError = HttpServiceError.httpError(statusCode: 403, message: "Forbidden")
     let zohoError = httpError.toZohoError()
     if case let .httpError(statusCode, message) = zohoError {
-      XCTAssertEqual(statusCode, 403)
-      XCTAssertEqual(message, "Forbidden")
+      #expect(statusCode == 403)
+      #expect(message == "Forbidden")
     } else {
-      XCTFail("Expected .httpError")
+      Issue.record("Expected .httpError")
     }
   }
 }
