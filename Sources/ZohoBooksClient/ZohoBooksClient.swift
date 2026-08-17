@@ -452,6 +452,14 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
   /// Fetch bank transactions of any status, optionally bounded by date
   /// (yyyy-MM-dd, inclusive). This is the feed used for completeness/gap
   /// analysis, where categorized activity matters as much as uncategorized.
+  ///
+  /// ⚠️ Zoho quirks (verified live, Aug 2026):
+  /// - `filter_by=Status.All` (and unfiltered listings) EXCLUDE uncategorized
+  ///   statement lines, so `.all` merges in a separate `status=uncategorized`
+  ///   fetch to actually mean "all".
+  /// - `date_start`/`date_end` are ignored on these listings — callers must
+  ///   filter by date client-side. The params are still sent in case Zoho
+  ///   fixes this.
   public func fetchTransactions(
     accountId: String,
     dateStart: String? = nil,
@@ -470,9 +478,33 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
       queryItems.append(URLQueryItem(name: "date_end", value: dateEnd))
     }
 
-    return try await fetchAllPages(
+    let listed: [ZBBankTransaction] = try await fetchAllPages(
       ZBBankTransactionListResponse.self, endpoint: "/banktransactions", queryItems: queryItems
     )
+
+    guard status == .all else { return listed }
+
+    var uncategorizedQuery = [
+      URLQueryItem(name: "account_id", value: accountId),
+      URLQueryItem(name: "status", value: "uncategorized")
+    ]
+    if let dateStart {
+      uncategorizedQuery.append(URLQueryItem(name: "date_start", value: dateStart))
+    }
+    if let dateEnd {
+      uncategorizedQuery.append(URLQueryItem(name: "date_end", value: dateEnd))
+    }
+    let uncategorized: [ZBBankTransaction] = try await fetchAllPages(
+      ZBBankTransactionListResponse.self, endpoint: "/banktransactions", queryItems: uncategorizedQuery
+    )
+
+    var seen = Set(listed.map(\.transactionId))
+    var merged = listed
+    for transaction in uncategorized where !seen.contains(transaction.transactionId) {
+      seen.insert(transaction.transactionId)
+      merged.append(transaction)
+    }
+    return merged.sorted { $0.date < $1.date }
   }
 
   /// Categorize a bank transaction as an expense
