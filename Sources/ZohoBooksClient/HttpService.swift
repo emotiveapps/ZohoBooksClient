@@ -79,7 +79,8 @@ public actor HttpService {
     queryItems: [URLQueryItem] = [],
     body: Data? = nil,
     headers: [String: String] = [:],
-    retryOnAuth: Bool = true
+    retryOnAuth: Bool = true,
+    rateLimitRetries: Int = 2
   ) async throws -> Data {
     await checkRateLimit()
 
@@ -142,8 +143,14 @@ public actor HttpService {
       throw HttpServiceError.unauthorized
     }
 
-    // Handle 429 - rate limited, wait and retry
+    // Handle 429 - rate limited: wait and retry a bounded number of times.
+    // Unbounded retries hang forever when the org's *daily* API quota is
+    // exhausted (every retry 429s again until the quota resets); after the
+    // retries are spent, surface the condition so callers can fail fast.
     if httpResponse.statusCode == 429 {
+      guard rateLimitRetries > 0 else {
+        throw HttpServiceError.rateLimited
+      }
       if verbose {
         print("Rate limited, waiting 60 seconds...")
       }
@@ -154,7 +161,8 @@ public actor HttpService {
         queryItems: queryItems,
         body: body,
         headers: headers,
-        retryOnAuth: retryOnAuth
+        retryOnAuth: retryOnAuth,
+        rateLimitRetries: rateLimitRetries - 1
       )
     }
 

@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `fetchExpenses(dateStart:dateEnd:)` date-range listing
 - Generic pagination (`fetchAllPages`): every list endpoint now pages to completion (invoices, payments, chart of accounts, items, taxes previously truncated at one page) and checks the Zoho envelope code
 
+### Fixed
+- 429 handling no longer retries forever: after a bounded number of 60s waits (default 2) the request throws `HttpServiceError.rateLimited`. Previously a client that hit Zoho's *daily* API quota would silently hang in a retry loop until the quota reset.
+
 ### Changed
 - `searchContactByName` filters server-side (`contact_name_contains`) instead of downloading the whole contact list
 - OAuth token refresh sends credentials in the form-encoded POST body instead of the URL query string
