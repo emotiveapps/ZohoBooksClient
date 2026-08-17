@@ -2,7 +2,7 @@
 
 A simple Zoho Books API client written in Swift.
 
-[![Swift 5.9+](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org)
+[![Swift 6.0+](https://img.shields.io/badge/Swift-6.0+-orange.svg)](https://swift.org)
 [![Platforms](https://img.shields.io/badge/Platforms-macOS%20|%20iOS%20|%20tvOS%20|%20watchOS-blue.svg)](https://developer.apple.com)
 
 > **Pre-alpha software (v0.1.0)** - Not intended for use in production.
@@ -18,13 +18,24 @@ A simple Zoho Books API client written in Swift.
 
 ### Supported Endpoints
 
-- **Contacts** - Customers and vendors
+- **Contacts** - Customers and vendors (server-side name search)
 - **Invoices** - Create, fetch, and mark as sent
-- **Expenses** - With attachment upload support
+- **Expenses** - List (with date-range filter), detail fetch with attached documents, create, attachment upload
 - **Payments** - Customer payments
 - **Chart of Accounts** - Account management
 - **Items** - Products and services
 - **Taxes** - Tax rates and exemptions
+- **Banking** - Bank accounts, transactions (all statuses or uncategorized), and categorization as expense / transfer / owner contribution / sale
+
+All list endpoints paginate to completion — no silent truncation at one page.
+
+### Zoho API quirks this client compensates for
+
+Verified against the live API (Aug 2026):
+
+- `/banktransactions` listings **exclude uncategorized statement lines** unless queried with `status=uncategorized`; `filter_by=Status.All` does not mean "all". `fetchTransactions(status: .all)` merges a second uncategorized fetch so it actually returns everything.
+- `date_start`/`date_end` are **ignored** on those listings — filter by date client-side. The client still sends them in case Zoho fixes this.
+- Uncategorized statement lines cannot be deleted via the API; use the `.../uncategorized/{id}/exclude` endpoint instead (reversible in the UI).
 
 ### Strict Concurrency
 
