@@ -23,14 +23,11 @@ let package = Package(
   targets: [
     .target(
       name: "ZohoBooksClient",
-      dependencies: ["OAuthenticator", "MimeTypeEnum"],
-      // Not yet audited for Swift 6 strict concurrency; keep v5 semantics.
-      swiftSettings: [.swiftLanguageMode(.v5)]
+      dependencies: ["OAuthenticator", "MimeTypeEnum"]
     ),
     .testTarget(
       name: "ZohoBooksClientTests",
-      dependencies: ["ZohoBooksClient"],
-      swiftSettings: [.swiftLanguageMode(.v5)]
+      dependencies: ["ZohoBooksClient"]
     )
   ]
 )

@@ -169,7 +169,7 @@ public actor HttpService {
   // MARK: - Convenience Methods
 
   /// Perform a GET request and decode the response
-  public func get<T: Decodable>(
+  public func get<T: Decodable & Sendable>(
     endpoint: String,
     queryItems: [URLQueryItem] = [],
     headers: [String: String] = [:]
@@ -179,9 +179,9 @@ public actor HttpService {
   }
 
   /// Perform a POST request with an encodable body and decode the response
-  public func post<T: Decodable>(
+  public func post<T: Decodable & Sendable>(
     endpoint: String,
-    body: some Encodable,
+    body: some Encodable & Sendable,
     queryItems: [URLQueryItem] = [],
     headers: [String: String] = [:]
   ) async throws -> T {
@@ -194,9 +194,9 @@ public actor HttpService {
   }
 
   /// Perform a PUT request with an encodable body and decode the response
-  public func put<T: Decodable>(
+  public func put<T: Decodable & Sendable>(
     endpoint: String,
-    body: some Encodable,
+    body: some Encodable & Sendable,
     queryItems: [URLQueryItem] = [],
     headers: [String: String] = [:]
   ) async throws -> T {

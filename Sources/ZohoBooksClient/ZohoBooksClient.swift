@@ -56,7 +56,7 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
 
   // MARK: - Private helpers wrapping HttpService
 
-  private func get<T: Decodable>(endpoint: String, queryItems: [URLQueryItem] = []) async throws -> T {
+  private func get<T: Decodable & Sendable>(endpoint: String, queryItems: [URLQueryItem] = []) async throws -> T {
     var items = queryItems
     items.append(orgQueryItem)
     do {
@@ -66,7 +66,7 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
     }
   }
 
-  private func post<T: Decodable>(endpoint: String, body: some Encodable) async throws -> T {
+  private func post<T: Decodable & Sendable>(endpoint: String, body: some Encodable & Sendable) async throws -> T {
     do {
       return try await http.post(endpoint: endpoint, body: body, queryItems: [orgQueryItem])
     } catch let error as HttpServiceError {
@@ -74,7 +74,7 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
     }
   }
 
-  private func put<T: Decodable>(endpoint: String, body: some Encodable) async throws -> T {
+  private func put<T: Decodable & Sendable>(endpoint: String, body: some Encodable & Sendable) async throws -> T {
     do {
       return try await http.put(endpoint: endpoint, body: body, queryItems: [orgQueryItem])
     } catch let error as HttpServiceError {
