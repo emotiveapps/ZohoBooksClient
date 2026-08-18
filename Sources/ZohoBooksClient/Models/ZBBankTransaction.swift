@@ -109,6 +109,8 @@ public struct ZBBankTransaction: Codable, Sendable {
     public let statementId: String?
     public let importedTransactionId: String?
     public let bankCharges: Double?
+    /// Where Zoho got this transaction (e.g. bank feed vs. imported statement), when reported.
+    public let source: String?
 
     /// Whether this is a debit (expense/outflow)
     public var isDebit: Bool {
@@ -146,6 +148,7 @@ public struct ZBBankTransaction: Codable, Sendable {
         case statementId = "statement_id"
         case importedTransactionId = "imported_transaction_id"
         case bankCharges = "bank_charges"
+        case source
     }
 
     public init(
@@ -161,7 +164,8 @@ public struct ZBBankTransaction: Codable, Sendable {
         accountName: String? = nil,
         statementId: String? = nil,
         importedTransactionId: String? = nil,
-        bankCharges: Double? = nil
+        bankCharges: Double? = nil,
+        source: String? = nil
     ) {
         self.transactionId = transactionId
         self.date = date
@@ -176,6 +180,7 @@ public struct ZBBankTransaction: Codable, Sendable {
         self.statementId = statementId
         self.importedTransactionId = importedTransactionId
         self.bankCharges = bankCharges
+        self.source = source
     }
 }
 
@@ -224,6 +229,7 @@ public struct ZBCategorizeTransferRequest: Codable, Sendable {
     public let toAccountId: String?
     public let fromAccountId: String?
     public let amount: Double?
+    public let date: String?
     public let referenceNumber: String?
     public let description: String?
 
@@ -231,7 +237,7 @@ public struct ZBCategorizeTransferRequest: Codable, Sendable {
         case transactionType = "transaction_type"
         case toAccountId = "to_account_id"
         case fromAccountId = "from_account_id"
-        case amount
+        case amount, date
         case referenceNumber = "reference_number"
         case description
     }
@@ -240,6 +246,7 @@ public struct ZBCategorizeTransferRequest: Codable, Sendable {
         toAccountId: String? = nil,
         fromAccountId: String? = nil,
         amount: Double? = nil,
+        date: String? = nil,
         referenceNumber: String? = nil,
         description: String? = nil
     ) {
@@ -247,6 +254,7 @@ public struct ZBCategorizeTransferRequest: Codable, Sendable {
         self.toAccountId = toAccountId
         self.fromAccountId = fromAccountId
         self.amount = amount
+        self.date = date
         self.referenceNumber = referenceNumber
         self.description = description
     }
