@@ -270,6 +270,111 @@ public struct ZBCategorizeTransferRequest: Codable, Sendable {
     }
 }
 
+/// Request to categorize a bank transaction as a credit-card payment
+/// (paying a card's balance from a bank account)
+public struct ZBCategorizeCardPaymentRequest: Codable, Sendable {
+    public let transactionType: String
+    public let toAccountId: String?
+    public let fromAccountId: String?
+    public let amount: Double?
+    public let date: String?
+    public let referenceNumber: String?
+    public let description: String?
+
+    enum CodingKeys: String, CodingKey {
+        case transactionType = "transaction_type"
+        case toAccountId = "to_account_id"
+        case fromAccountId = "from_account_id"
+        case amount, date
+        case referenceNumber = "reference_number"
+        case description
+    }
+
+    public init(
+        toAccountId: String? = nil,
+        fromAccountId: String? = nil,
+        amount: Double? = nil,
+        date: String? = nil,
+        referenceNumber: String? = nil,
+        description: String? = nil
+    ) {
+        self.transactionType = "card_payment"
+        self.toAccountId = toAccountId
+        self.fromAccountId = fromAccountId
+        self.amount = amount
+        self.date = date
+        self.referenceNumber = referenceNumber
+        self.description = description
+    }
+}
+
+// MARK: - Transaction Matching
+
+struct ZBMatchingTransactionsResponse: Codable, Sendable {
+    let code: Int
+    let message: String
+    let matchingTransactions: [ZBMatchingTransaction]?
+
+    enum CodingKeys: String, CodingKey {
+        case code, message
+        case matchingTransactions = "matching_transactions"
+    }
+}
+
+/// A recorded transaction Zoho proposes as a match for an uncategorized
+/// bank-feed line
+public struct ZBMatchingTransaction: Codable, Sendable {
+    public let transactionId: String
+    public let transactionType: String?
+    public let transactionTypeFormatted: String?
+    public let date: String?
+    public let dateFormatted: String?
+    public let amount: Double?
+    public let debitOrCredit: String?
+    public let referenceNumber: String?
+    public let contactName: String?
+
+    enum CodingKeys: String, CodingKey {
+        case transactionId = "transaction_id"
+        case transactionType = "transaction_type"
+        case transactionTypeFormatted = "transaction_type_formatted"
+        case date
+        case dateFormatted = "date_formatted"
+        case amount
+        case debitOrCredit = "debit_or_credit"
+        case referenceNumber = "reference_number"
+        case contactName = "contact_name"
+    }
+}
+
+/// Request to match an uncategorized bank-feed line to recorded transactions
+public struct ZBMatchRequest: Codable, Sendable {
+    public struct Entry: Codable, Sendable {
+        public let transactionId: String
+        public let transactionType: String?
+
+        enum CodingKeys: String, CodingKey {
+            case transactionId = "transaction_id"
+            case transactionType = "transaction_type"
+        }
+
+        public init(transactionId: String, transactionType: String?) {
+            self.transactionId = transactionId
+            self.transactionType = transactionType
+        }
+    }
+
+    public let transactionsToBeMatched: [Entry]
+
+    enum CodingKeys: String, CodingKey {
+        case transactionsToBeMatched = "transactions_to_be_matched"
+    }
+
+    public init(transactionsToBeMatched: [Entry]) {
+        self.transactionsToBeMatched = transactionsToBeMatched
+    }
+}
+
 /// Request to categorize a bank transaction as an expense refund (money
 /// returned by a vendor, credited back against an expense account)
 public struct ZBCategorizeExpenseRefundRequest: Codable, Sendable {

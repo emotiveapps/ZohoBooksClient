@@ -545,6 +545,46 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
     }
   }
 
+  /// Categorize a bank transaction as a credit-card payment
+  public func categorizeAsCardPayment(
+    transactionId: String, request: ZBCategorizeCardPaymentRequest
+  ) async throws {
+    let response: ZBCategorizeResponse = try await post(
+      endpoint: "/banktransactions/uncategorized/\(transactionId)/categorize",
+      body: request
+    )
+
+    if response.code != 0 {
+      throw ZohoError.apiError(code: response.code, message: response.message)
+    }
+  }
+
+  /// Recorded transactions Zoho proposes as matches for an uncategorized
+  /// bank-feed line
+  public func fetchMatchingTransactions(transactionId: String) async throws -> [ZBMatchingTransaction] {
+    let response: ZBMatchingTransactionsResponse = try await get(
+      endpoint: "/banktransactions/uncategorized/\(transactionId)/match"
+    )
+
+    if response.code != 0 {
+      throw ZohoError.apiError(code: response.code, message: response.message)
+    }
+    return response.matchingTransactions ?? []
+  }
+
+  /// Match an uncategorized bank-feed line to already-recorded transactions
+  /// (Zoho's "Match Transactions" action)
+  public func matchTransaction(transactionId: String, request: ZBMatchRequest) async throws {
+    let response: ZBCategorizeResponse = try await post(
+      endpoint: "/banktransactions/uncategorized/\(transactionId)/match",
+      body: request
+    )
+
+    if response.code != 0 {
+      throw ZohoError.apiError(code: response.code, message: response.message)
+    }
+  }
+
   /// Exclude an uncategorized bank transaction from the books (duplicates,
   /// noise). Reversible from the Excluded filter in Zoho's web UI.
   public func excludeTransaction(transactionId: String) async throws {
