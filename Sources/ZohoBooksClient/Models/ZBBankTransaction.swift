@@ -126,9 +126,13 @@ public struct ZBBankTransaction: Codable, Sendable {
         return formatter.string(from: NSNumber(value: value)) ?? String(format: "$%.2f", value)
     }
 
-    /// The display description (prefers payee over description)
+    /// The display description (prefers payee over description). Zoho often
+    /// sends `payee` as an empty string rather than omitting it, so blank
+    /// values fall through instead of masking the description.
     public var displayDescription: String {
-        payee ?? description ?? "No description"
+        if let payee, !payee.isEmpty { return payee }
+        if let description, !description.isEmpty { return description }
+        return "No description"
     }
 
     /// URL to view this transaction in Zoho Books
@@ -255,6 +259,44 @@ public struct ZBCategorizeTransferRequest: Codable, Sendable {
         self.fromAccountId = fromAccountId
         self.amount = amount
         self.date = date
+        self.referenceNumber = referenceNumber
+        self.description = description
+    }
+}
+
+/// Request to categorize a bank transaction as an expense refund (money
+/// returned by a vendor, credited back against an expense account)
+public struct ZBCategorizeExpenseRefundRequest: Codable, Sendable {
+    public let transactionType: String
+    public let accountId: String
+    public let vendorId: String?
+    public let date: String?
+    public let amount: Double?
+    public let referenceNumber: String?
+    public let description: String?
+
+    enum CodingKeys: String, CodingKey {
+        case transactionType = "transaction_type"
+        case accountId = "account_id"
+        case vendorId = "vendor_id"
+        case date, amount
+        case referenceNumber = "reference_number"
+        case description
+    }
+
+    public init(
+        accountId: String,
+        vendorId: String? = nil,
+        date: String? = nil,
+        amount: Double? = nil,
+        referenceNumber: String? = nil,
+        description: String? = nil
+    ) {
+        self.transactionType = "expense_refund"
+        self.accountId = accountId
+        self.vendorId = vendorId
+        self.date = date
+        self.amount = amount
         self.referenceNumber = referenceNumber
         self.description = description
     }
