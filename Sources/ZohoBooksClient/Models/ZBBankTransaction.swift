@@ -106,6 +106,9 @@ public struct ZBBankTransaction: Codable, Sendable {
     public let status: String?
     public let accountId: String?
     public let accountName: String?
+    /// "bank", "credit_card", … — needed because debit/credit semantics are
+    /// inverted on credit cards.
+    public let accountType: String?
     public let statementId: String?
     public let importedTransactionId: String?
     public let bankCharges: Double?
@@ -149,6 +152,7 @@ public struct ZBBankTransaction: Codable, Sendable {
         case payee, status
         case accountId = "account_id"
         case accountName = "account_name"
+        case accountType = "account_type"
         case statementId = "statement_id"
         case importedTransactionId = "imported_transaction_id"
         case bankCharges = "bank_charges"
@@ -166,6 +170,7 @@ public struct ZBBankTransaction: Codable, Sendable {
         status: String? = nil,
         accountId: String? = nil,
         accountName: String? = nil,
+        accountType: String? = nil,
         statementId: String? = nil,
         importedTransactionId: String? = nil,
         bankCharges: Double? = nil,
@@ -181,6 +186,7 @@ public struct ZBBankTransaction: Codable, Sendable {
         self.status = status
         self.accountId = accountId
         self.accountName = accountName
+        self.accountType = accountType
         self.statementId = statementId
         self.importedTransactionId = importedTransactionId
         self.bankCharges = bankCharges
