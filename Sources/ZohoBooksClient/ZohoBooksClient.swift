@@ -531,6 +531,12 @@ public actor ZohoBooksClient<OAuth: OAuthProviding> {
     }
   }
 
+  /// Exclude an uncategorized bank transaction from the books (duplicates,
+  /// noise). Reversible from the Excluded filter in Zoho's web UI.
+  public func excludeTransaction(transactionId: String) async throws {
+    try await postRaw(endpoint: "/banktransactions/uncategorized/\(transactionId)/exclude")
+  }
+
   /// Categorize a bank transaction as an owner contribution
   public func categorizeAsOwnerContribution(transactionId: String, request: ZBCategorizeOwnerContributionRequest) async throws {
     let response: ZBCategorizeResponse = try await post(
